@@ -25,18 +25,21 @@ export default function Home() {
               The Solution
             </h2>
             <p className="text-gray-700">
-              QualifyFirst learns about you once, then only shows surveys you&apos;ll 
+              QualifyFirst learns about you once, then only shows surveys you will 
               actually qualify for. Less frustration, more earnings.
             </p>
           </div>
 
           <div className="space-y-4">
-            <button className="w-full bg-indigo-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition">
-              Coming Soon - Join Waitlist
-            </button>
+            <a 
+              href="/profile"
+              className="block w-full bg-indigo-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition text-center"
+            >
+              Start Building Your Profile
+            </a>
             
             <p className="text-sm text-gray-500">
-              Built by Jamie Vargas • Currently in Development
+              In dev by Jamie Vargas • Made for degens by degens
             </p>
           </div>
         </div>
