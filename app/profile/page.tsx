@@ -161,7 +161,7 @@ export default function ProfilePage() {
                   <button
                     key={option}
                     onClick={() => handleAnswer(option)}
-                    className={`w-full text-left px-4 py-3 rounded-lg border-2 transition ${
+                    className={`w-full text-left px-4 py-3 rounded-lg border-2 transition text-gray-900 ${
                       answers[question.id] === option
                         ? 'border-indigo-600 bg-indigo-50'
                         : 'border-gray-200 hover:border-indigo-300'
@@ -182,7 +182,7 @@ export default function ProfilePage() {
                     <button
                       key={option}
                       onClick={() => handleMultiSelect(option)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border-2 transition flex items-center ${
+                      className={`w-full text-left px-4 py-3 rounded-lg border-2 transition flex items-center text-gray-900 ${
                         selected
                           ? 'border-indigo-600 bg-indigo-50'
                           : 'border-gray-200 hover:border-indigo-300'
