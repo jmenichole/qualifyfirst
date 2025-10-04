@@ -8,22 +8,23 @@ import { profileQuestions, ProfileAnswer } from '../lib/lib/questions';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(-1); // Start at -1 for email screen
   const [answers, setAnswers] = useState<ProfileAnswer>({});
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showEmailScreen, setShowEmailScreen] = useState(true);
 
-  const question = profileQuestions[currentQuestion];
-  const progress = ((currentQuestion + 1) / profileQuestions.length) * 100;
+  const question = currentQuestion >= 0 ? profileQuestions[currentQuestion] : null;
+  const progress = currentQuestion >= 0 ? ((currentQuestion + 1) / profileQuestions.length) * 100 : 0;
 
   const handleAnswer = (value: string | string[]) => {
-    setAnswers({ ...answers, [question.id]: value });
+    if (question) {
+      setAnswers({ ...answers, [question.id]: value });
+    }
   };
 
   const handleNext = () => {
-    if (!answers[question.id] || (Array.isArray(answers[question.id]) && (answers[question.id] as string[]).length === 0)) {
+    if (question && (!answers[question.id] || (Array.isArray(answers[question.id]) && (answers[question.id] as string[]).length === 0))) {
       setError('Please answer this question');
       return;
     }
@@ -37,38 +38,10 @@ export default function ProfilePage() {
   };
 
   const handleBack = () => {
-    if (currentQuestion > 0) {
+    if (currentQuestion > -1) {
       setCurrentQuestion(currentQuestion - 1);
       setError('');
     }
-  };
-
-  const handleSubmit = async () => {
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert([{ email, ...answers }])
-        .select();
-
-      if (error) throw error;
-
-      router.push(`/profile/complete?id=${data[0].id}`);
-    } catch (err) {
-      setError('Failed to save profile. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMultiSelect = (option: string) => {
-    const current = (answers[question.id] as string[]) || [];
-    const updated = current.includes(option)
-      ? current.filter(item => item !== option)
-      : [...current, option];
-    handleAnswer(updated);
   };
 
   const handleEmailSubmit = () => {
@@ -77,14 +50,57 @@ export default function ProfilePage() {
       return;
     }
     setError('');
-    setShowEmailScreen(false);
+    setCurrentQuestion(0);
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    
+    try {
+      // Sign up the user
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Create profile (user_id will be set after they verify email)
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert([{ 
+          email,
+          ...answers 
+        }])
+        .select();
+
+      if (profileError) throw profileError;
+
+      router.push(`/profile/complete?email=${encodeURIComponent(email)}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save profile. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMultiSelect = (option: string) => {
+    if (!question) return;
+    const current = (answers[question.id] as string[]) || [];
+    const updated = current.includes(option)
+      ? current.filter(item => item !== option)
+      : [...current, option];
+    handleAnswer(updated);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-2xl mx-auto pt-8">
-        {/* Progress Bar - Only show after email screen */}
-        {!showEmailScreen && (
+        {/* Progress Bar */}
+        {currentQuestion >= 0 && (
           <div className="mb-8">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>Question {currentQuestion + 1} of {profileQuestions.length}</span>
@@ -99,14 +115,14 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Email Input (First Screen) */}
-        {showEmailScreen && (
+        {/* Email Screen */}
+        {currentQuestion === -1 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Let&apos;s get started!
             </h2>
             <p className="text-gray-600 mb-6">
-              Enter your email to save your profile and get matched with surveys.
+              Enter your email. We&apos;ll send you a magic link to access your dashboard.
             </p>
             <input
               type="email"
@@ -127,7 +143,7 @@ export default function ProfilePage() {
         )}
 
         {/* Question Card */}
-        {!showEmailScreen && (
+        {currentQuestion >= 0 && question && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="mb-6">
               <span className="text-sm font-medium text-indigo-600 uppercase tracking-wide">
@@ -224,10 +240,26 @@ export default function ProfilePage() {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <Link href="/" className="text-indigo-600 hover:text-indigo-700">
-            ← Back to Home
+            Back to Home
           </Link>
         </div>
       </div>
     </div>
   );
 }
+<div className="space-y-4">
+  <a 
+    href="/profile"
+    className="block w-full bg-indigo-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition text-center"
+  >
+    Start Building Your Profile
+  </a>
+  
+  <p className="text-center text-sm text-gray-500">
+    Already have an account? <a href="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">Login</a>
+  </p>
+  
+  <p className="text-sm text-gray-500 text-center">
+    Built by Jamie Vargas • Currently in Development
+  </p>
+</div>

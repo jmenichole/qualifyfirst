@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 function CompleteContent() {
   const searchParams = useSearchParams();
-  const id = searchParams.get('id');
+  const email = searchParams.get('email');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -21,29 +21,29 @@ function CompleteContent() {
             Profile Complete!
           </h1>
           <p className="text-gray-600">
-            Profile ID: {id}
+            Check your email: {email}
           </p>
         </div>
 
         <div className="bg-indigo-50 border-l-4 border-indigo-500 p-6 mb-6 text-left">
-          <h2 className="font-semibold text-gray-900 mb-2">What happens next?</h2>
+          <h2 className="font-semibold text-gray-900 mb-2">Next steps:</h2>
           <ul className="space-y-2 text-gray-700">
-            <li>✓ Your profile is saved securely</li>
-            <li>✓ We&apos;ll match you with relevant surveys</li>
-            <li>✓ You&apos;ll only see surveys you qualify for</li>
-            <li>✓ Save time, earn more efficiently</li>
+            <li>✓ Check your email for a magic link</li>
+            <li>✓ Click the link to access your dashboard</li>
+            <li>✓ View your matched surveys and start earning</li>
+            <li>✓ Bookmark your dashboard for easy access</li>
           </ul>
         </div>
 
         <div className="space-y-3">
           <Link
-            href={`/dashboard?id=${id}`}
+            href="/"
             className="block w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition"
           >
-            View Matched Surveys
+            Back to Home
           </Link>
           <p className="text-sm text-gray-500">
-            Survey matching coming soon!
+            Didn&apos;t get the email? Check your spam folder
           </p>
         </div>
       </div>
