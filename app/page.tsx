@@ -39,7 +39,7 @@ export default function Home() {
             </a>
             
             <p className="text-sm text-gray-500">
-              In dev by Jamie Vargas • Made for degens by degens
+              In development stage • Jamie Vargas • Made for degens by degens
             </p>
           </div>
         </div>
