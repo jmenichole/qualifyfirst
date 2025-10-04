@@ -130,7 +130,7 @@ export default function ProfilePage() {
               onChange={(e) => setEmail(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleEmailSubmit()}
               placeholder="your.email@example.com"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
             />
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
             <button
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleAnswer(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleNext()}
                 placeholder={question.placeholder}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900"
               />
             )}
 
