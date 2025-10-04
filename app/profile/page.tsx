@@ -59,11 +59,19 @@ export default function ProfilePage() {
     
     try {
       // Sign up the user
-      console.log('Sending magic link...');
+      // Store profile data temporarily in localStorage
+      const profileData = { 
+        email,
+        ...answers 
+      };
+      console.log('Storing profile data temporarily:', profileData);
+      localStorage.setItem('pendingProfile', JSON.stringify(profileData));
+
+      console.log('Sending magic link for authentication...');
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?returnTo=profile-complete`,
         }
       });
 
@@ -72,25 +80,6 @@ export default function ProfilePage() {
         throw authError;
       }
       console.log('Magic link sent successfully');
-
-      // Create profile (user_id will be set after they verify email)
-      console.log('Saving profile to database...');
-      const profileData = { 
-        email,
-        ...answers 
-      };
-      console.log('Profile data:', profileData);
-      
-      const { data, error: profileError } = await supabase
-        .from('user_profiles')
-        .insert([profileData])
-        .select();
-
-      if (profileError) {
-        console.error('Profile save error:', profileError);
-        throw profileError;
-      }
-      console.log('Profile saved successfully:', data);
 
       router.push(`/profile/complete?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {

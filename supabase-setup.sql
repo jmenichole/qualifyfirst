@@ -71,14 +71,32 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email);
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
 BEGIN
     NEW.updated_at = TIMEZONE('utc'::text, NOW());
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$;
 
 -- Trigger to automatically update updated_at (drop and recreate if exists)
 DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to increment survey clicks with secure search_path
+CREATE OR REPLACE FUNCTION public.increment_survey_clicks()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Add your survey click increment logic here
+    -- This is a placeholder function with proper security settings
+    RETURN NEW;
+END;
+$$;

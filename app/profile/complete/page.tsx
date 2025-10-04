@@ -26,12 +26,12 @@ function CompleteContent() {
         </div>
 
         <div className="bg-indigo-50 border-l-4 border-indigo-500 p-6 mb-6 text-left">
-          <h2 className="font-semibold text-gray-900 mb-2">Next steps:</h2>
+          <h2 className="font-semibold text-gray-900 mb-2">Check your email for magic link:</h2>
           <ul className="space-y-2 text-gray-700">
-            <li>✓ Check your email for a magic link</li>
-            <li>✓ Click the link to access your dashboard</li>
-            <li>✓ View your matched surveys and start earning</li>
-            <li>✓ Bookmark your dashboard for easy access</li>
+            <li>✓ We sent you a magic link to login</li>
+            <li>✓ Click the link in your email to complete setup</li>
+            <li>✓ Your profile will be saved and you'll be logged in</li>
+            <li>✓ You'll be taken to your dashboard with matched surveys</li>
           </ul>
         </div>
 
