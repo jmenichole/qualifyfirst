@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -31,12 +33,12 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <a 
+            <Link 
               href="/profile"
               className="block w-full bg-indigo-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition text-center"
             >
               Start Building Your Profile
-            </a>
+            </Link>
             
             <p className="text-sm text-gray-500">
               In development stage • Jamie Vargas • Made for degens by degens

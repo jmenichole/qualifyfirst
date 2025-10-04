@@ -37,10 +37,10 @@ function CompleteContent() {
 
         <div className="space-y-3">
           <Link
-            href="/"
+            href={`/dashboard?id=${id}`}
             className="block w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition"
           >
-            Back to Home
+            View Matched Surveys
           </Link>
           <p className="text-sm text-gray-500">
             Survey matching coming soon!
