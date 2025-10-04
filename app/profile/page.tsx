@@ -55,9 +55,11 @@ export default function ProfilePage() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    console.log('Starting profile submission...', { email, answers });
     
     try {
       // Sign up the user
+      console.log('Sending magic link...');
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -65,23 +67,39 @@ export default function ProfilePage() {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
+      console.log('Magic link sent successfully');
 
       // Create profile (user_id will be set after they verify email)
-      const { error: profileError } = await supabase
+      console.log('Saving profile to database...');
+      const profileData = { 
+        email,
+        ...answers 
+      };
+      console.log('Profile data:', profileData);
+      
+      const { data, error: profileError } = await supabase
         .from('user_profiles')
-        .insert([{ 
-          email,
-          ...answers 
-        }])
+        .insert([profileData])
         .select();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile save error:', profileError);
+        throw profileError;
+      }
+      console.log('Profile saved successfully:', data);
 
       router.push(`/profile/complete?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile. Please try again.');
-      console.error(err);
+      console.error('Profile submission error:', err);
+      if (err instanceof Error) {
+        setError(`Error: ${err.message}`);
+      } else {
+        setError('Failed to save profile. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
