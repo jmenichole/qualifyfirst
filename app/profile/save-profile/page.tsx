@@ -95,7 +95,7 @@ export default function SaveProfilePage() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Profile saved successfully!</h2>
           <p className="text-gray-600 mb-4">
-            Your profile has been created and you're now logged in.
+            Your profile has been created and you&apos;re now logged in.
           </p>
           <p className="text-sm text-gray-500">
             Redirecting to your dashboard...

@@ -9,7 +9,7 @@ import { LoadingSpinner } from '../../components/LoadingComponents';
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<{id: number, user_id: string, email: string, [key: string]: string | string[] | number} | null>(null);
   const [answers, setAnswers] = useState<{[key: string]: string | string[]}>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -57,6 +57,11 @@ export default function EditProfilePage() {
   };
 
   const handleSave = async () => {
+    if (!profile) {
+      setError('Profile data not loaded');
+      return;
+    }
+
     setSaving(true);
     setError('');
     setSuccess('');

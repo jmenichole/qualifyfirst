@@ -74,13 +74,20 @@ export interface SurveyClick {
 // API Response Types
 export interface SupabaseResponse<T> {
   data: T | null;
-  error: any;
+  error: PostgrestError | null;
 }
 
 export interface PaginatedResponse<T> {
   data: T[];
   count: number | null;
-  error: any;
+  error: PostgrestError | null;
+}
+
+export interface PostgrestError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
 }
 
 // Form Types
@@ -145,7 +152,7 @@ export interface AnalyticsEvent {
   user_id?: string;
   profile_id?: number;
   survey_id?: number;
-  properties?: Record<string, any>;
+  properties?: Record<string, string | number | boolean>;
   timestamp: string;
 }
 

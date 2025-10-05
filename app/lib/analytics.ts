@@ -17,7 +17,7 @@ export type AnalyticsEvent =
 // Track analytics events
 export async function trackEvent(
   event: AnalyticsEvent, 
-  properties?: Record<string, any>
+  properties?: Record<string, string | number | boolean>
 ) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -53,7 +53,7 @@ export async function trackEvent(
 }
 
 // Track page views
-export async function trackPageView(page: string, additionalData?: Record<string, any>) {
+export async function trackPageView(page: string, additionalData?: Record<string, string | number | boolean>) {
   await trackEvent('dashboard_viewed', {
     page,
     timestamp: new Date().toISOString(),
@@ -65,7 +65,7 @@ export async function trackPageView(page: string, additionalData?: Record<string
 export async function trackSurveyInteraction(
   surveyId: number, 
   action: 'clicked' | 'completed',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, string | number | boolean>
 ) {
   await trackEvent(action === 'clicked' ? 'survey_clicked' : 'survey_completed', {
     survey_id: surveyId,

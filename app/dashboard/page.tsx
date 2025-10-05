@@ -49,7 +49,7 @@ export default function DashboardPage() {
       setTotalSurveys(allSurveys.length);
     } catch (err) {
       console.error(err);
-      setError('Failed to load data');
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export default function DashboardPage() {
       await loadUserData(user.email!);
     } catch (err) {
       console.error(err);
-      setError('Authentication error');
+      setError(err instanceof Error ? err.message : 'Authentication error');
       setLoading(false);
     }
   }, [router, loadUserData]);

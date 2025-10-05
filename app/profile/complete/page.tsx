@@ -30,8 +30,8 @@ function CompleteContent() {
           <ul className="space-y-2 text-gray-700">
             <li>✓ We sent you a magic link to login</li>
             <li>✓ Click the link in your email to complete setup</li>
-            <li>✓ Your profile will be saved and you'll be logged in</li>
-            <li>✓ You'll be taken to your dashboard with matched surveys</li>
+            <li>✓ Your profile will be saved and you&apos;ll be logged in</li>
+            <li>✓ You&apos;ll be taken to your dashboard with matched surveys</li>
           </ul>
         </div>
 
