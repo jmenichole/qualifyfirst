@@ -8,11 +8,16 @@ import { Survey } from '../lib/lib/matching';
 export default function DashboardPage() {
   const router = useRouter();
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
   const [profile, setProfile] = useState<{email: string, answers: {[key: string]: string | string[]}} | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [matchCount, setMatchCount] = useState(0);
   const [totalSurveys, setTotalSurveys] = useState(0);
+  const [sortBy, setSortBy] = useState<'payout' | 'time' | 'provider'>('payout');
+  const [filterMinPayout, setFilterMinPayout] = useState<number>(0);
+  const [filterMaxTime, setFilterMaxTime] = useState<number>(60);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadUserData = useCallback(async (email: string) => {
     try {
@@ -39,6 +44,7 @@ export default function DashboardPage() {
       const matched = allSurveys.filter(survey => matchesSurvey(profileData, survey));
       
       setSurveys(matched);
+      setFilteredSurveys(matched);
       setMatchCount(matched.length);
       setTotalSurveys(allSurveys.length);
     } catch (err) {
@@ -93,6 +99,35 @@ export default function DashboardPage() {
     await supabase.auth.signOut();
     router.push('/');
   };
+
+  // Apply filters and sorting
+  useEffect(() => {
+    let filtered = surveys.filter(survey => {
+      const matchesSearch = searchTerm === '' || 
+        survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.provider.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPayout = survey.payout >= filterMinPayout;
+      const matchesTime = survey.estimated_time <= filterMaxTime;
+      
+      return matchesSearch && matchesPayout && matchesTime;
+    });
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'payout':
+          return b.payout - a.payout;
+        case 'time':
+          return a.estimated_time - b.estimated_time;
+        case 'provider':
+          return a.provider.localeCompare(b.provider);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredSurveys(filtered);
+  }, [surveys, searchTerm, filterMinPayout, filterMaxTime, sortBy]);
 
   if (loading) {
     return (
@@ -161,20 +196,102 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Filter & Sort Surveys</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search surveys..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'payout' | 'time' | 'provider')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="payout">Highest Payout</option>
+                <option value="time">Shortest Time</option>
+                <option value="provider">Provider</option>
+              </select>
+            </div>
+
+            {/* Min Payout */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Payout (${filterMinPayout})
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="0.5"
+                value={filterMinPayout}
+                onChange={(e) => setFilterMinPayout(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+
+            {/* Max Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Time ({filterMaxTime} min)
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="60"
+                step="5"
+                value={filterMaxTime}
+                onChange={(e) => setFilterMaxTime(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-500">
+            Showing {filteredSurveys.length} of {surveys.length} matched surveys
+          </div>
+        </div>
+
+        {/* Edit Profile Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/profile/edit')}
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
+          >
+            Edit Profile
+          </button>
+        </div>
+
         {/* Surveys */}
-        {surveys.length === 0 ? (
+        {filteredSurveys.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <div className="text-6xl mb-4">😕</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              No matches yet
+              {surveys.length === 0 ? 'No matches yet' : 'No surveys match your filters'}
             </h2>
             <p className="text-gray-600">
-              Check back soon for new surveys!
+              {surveys.length === 0 
+                ? 'Check back soon for new surveys!' 
+                : 'Try adjusting your filters to see more surveys.'
+              }
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {surveys.map((survey) => (
+            {filteredSurveys.map((survey) => (
               <div
                 key={survey.id}
                 className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer"
