@@ -8,11 +8,13 @@ import { profileQuestions, ProfileAnswer } from '../lib/lib/questions';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [currentQuestion, setCurrentQuestion] = useState(-1); // Start at -1 for email screen
+  const [currentQuestion, setCurrentQuestion] = useState(-2); // Start at -2 for email, -1 for consent
   const [answers, setAnswers] = useState<ProfileAnswer>({});
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   const question = currentQuestion >= 0 ? profileQuestions[currentQuestion] : null;
   const progress = currentQuestion >= 0 ? ((currentQuestion + 1) / profileQuestions.length) * 100 : 0;
@@ -38,7 +40,7 @@ export default function ProfilePage() {
   };
 
   const handleBack = () => {
-    if (currentQuestion > -1) {
+    if (currentQuestion > -2) {
       setCurrentQuestion(currentQuestion - 1);
       setError('');
     }
@@ -50,7 +52,16 @@ export default function ProfilePage() {
       return;
     }
     setError('');
-    setCurrentQuestion(0);
+    setCurrentQuestion(-1); // Go to consent screen
+  };
+
+  const handleConsentSubmit = () => {
+    if (!gdprConsent) {
+      setError('You must agree to the Privacy Policy to continue');
+      return;
+    }
+    setError('');
+    setCurrentQuestion(0); // Go to first question
   };
 
   const handleSubmit = async () => {
@@ -123,7 +134,7 @@ export default function ProfilePage() {
         )}
 
         {/* Email Screen */}
-        {currentQuestion === -1 && (
+        {currentQuestion === -2 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Let&apos;s get started!
@@ -146,6 +157,70 @@ export default function ProfilePage() {
             >
               Start Profile
             </button>
+          </div>
+        )}
+
+        {/* Consent Screen */}
+        {currentQuestion === -1 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Privacy & Consent
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Before we continue, please review and accept our privacy practices.
+            </p>
+            
+            <div className="space-y-4 mb-6">
+              <label className="flex items-start">
+                <input
+                  type="checkbox"
+                  checked={gdprConsent}
+                  onChange={(e) => setGdprConsent(e.target.checked)}
+                  className="mt-1 mr-3 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  required
+                />
+                <span className="text-sm text-gray-700">
+                  I agree to the{' '}
+                  <a href="/legal/privacy-policy" target="_blank" className="text-indigo-600 hover:text-indigo-800 underline">
+                    Privacy Policy
+                  </a>{' '}
+                  and{' '}
+                  <a href="/legal/terms-of-service" target="_blank" className="text-indigo-600 hover:text-indigo-800 underline">
+                    Terms of Service
+                  </a>
+                  . I understand that my data will be processed as described in the Privacy Policy. <strong className="text-gray-900">(Required)</strong>
+                </span>
+              </label>
+              
+              <label className="flex items-start">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-1 mr-3 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-sm text-gray-700">
+                  I would like to receive marketing communications and updates about new survey opportunities. <em className="text-gray-500">(Optional)</em>
+                </span>
+              </label>
+            </div>
+            
+            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+            
+            <div className="flex gap-4">
+              <button
+                onClick={handleBack}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleConsentSubmit}
+                className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         )}
 

@@ -27,10 +27,13 @@ export default function SaveProfilePage() {
 
         const pendingProfile = JSON.parse(pendingProfileStr);
         
-        // Add the user_id to the profile data
+        // Generate referral code and add user_id to profile data
+        const userReferralCode = pendingProfile.email.substring(0, pendingProfile.email.indexOf('@')).toLowerCase().replace(/[^a-z0-9]/g, '') + Math.random().toString(36).substring(2, 6);
+        
         const profileData = {
           ...pendingProfile,
-          user_id: user.id
+          user_id: user.id,
+          referral_code: userReferralCode
         };
 
         console.log('Saving profile with user_id:', profileData);
@@ -47,6 +50,17 @@ export default function SaveProfilePage() {
         }
 
         console.log('Profile saved successfully:', data);
+
+        // Check for referral code and track it
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = urlParams.get('ref') || localStorage.getItem('referralCode');
+        
+        if (referralCode) {
+          // Track the referral
+          const { trackReferralSignup } = await import('../../lib/referrals');
+          await trackReferralSignup(referralCode, user.id);
+          localStorage.removeItem('referralCode'); // Clean up
+        }
         
         // Clear the temporary data
         localStorage.removeItem('pendingProfile');

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { NotificationProvider } from "./components/Notifications";
+import { CookieConsentBanner } from "./components/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <NotificationProvider>
           <ErrorBoundary>
             {children}
+            <CookieConsentBanner />
           </ErrorBoundary>
         </NotificationProvider>
       </body>

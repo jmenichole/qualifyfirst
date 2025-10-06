@@ -1,6 +1,19 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { Footer } from './components/Footer';
 
 export default function Home() {
+  // Capture referral code from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref) {
+      localStorage.setItem('referralCode', ref);
+      console.log('Referral code captured:', ref);
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
@@ -41,11 +54,12 @@ export default function Home() {
             </Link>
             
             <p className="text-sm text-gray-500">
-              In development stage • Jamie Vargas • Made for degens by degens
+              Developer Jamie Vargas • Made for degens by degens
             </p>
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

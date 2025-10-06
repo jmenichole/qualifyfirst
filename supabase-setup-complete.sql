@@ -3,8 +3,105 @@
 
 -- Create user_profiles table
 CREATE TABLE IF NOT EXISTS user_profiles (
+  id SERIAL PRIMARY -- Create referrals table
+CREATE TABLE IF NOT EXISTS referrals (
+  id SERIAL PRIMARY KEY,
+  referrer_id INTEGER REFERENCES user_profiles(id),
+  referred_user_id UUID REFERENCES auth.users(id),
+  referral_code TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+  reward_amount DECIMAL(10,2) DEFAULT 2.50,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create tax information table for 1099 reporting
+CREATE TABLE IF NOT EXISTS tax_information (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) UNIQUE,
+  legal_name TEXT NOT NULL,
+  ssn_ein TEXT NOT NULL,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  zip_code TEXT NOT NULL,
+  tax_classification TEXT NOT NULL CHECK (tax_classification IN ('individual', 'sole_proprietor', 'partnership', 'corporation', 'llc')),
+  w9_submitted BOOLEAN DEFAULT false,
+  submission_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create earnings tracking table for tax reporting
+CREATE TABLE IF NOT EXISTS user_earnings (
   id SERIAL PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id),
+  year INTEGER NOT NULL,
+  total_earnings DECIMAL(10,2) DEFAULT 0.00,
+  survey_earnings DECIMAL(10,2) DEFAULT 0.00,
+  referral_earnings DECIMAL(10,2) DEFAULT 0.00,
+  tax_form_issued BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, year)
+);
+
+-- Create pending earnings table (for amounts below minimum payout)
+CREATE TABLE IF NOT EXISTS pending_earnings (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  amount DECIMAL(10,2) NOT NULL,
+  type TEXT NOT NULL,
+  source_id INTEGER,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processed', 'cancelled')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create payout transactions table
+CREATE TABLE IF NOT EXISTS payout_transactions (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  amount DECIMAL(10,2) NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('survey_completion', 'referral_bonus', 'manual_payout')),
+  method TEXT NOT NULL CHECK (method IN ('justthetip_balance', 'wallet', 'split')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed')),
+  transaction_id TEXT,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create AI feedback table for survey matching
+CREATE TABLE IF NOT EXISTS survey_completion_feedback (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  survey_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  result TEXT NOT NULL CHECK (result IN ('completed', 'disqualified', 'abandoned')),
+  time_spent INTEGER DEFAULT 0,
+  reward_earned DECIMAL(10,2) DEFAULT 0.00,
+  user_attributes JSONB DEFAULT '{}',
+  survey_attributes JSONB DEFAULT '{}',
+  match_score DECIMAL(3,2),
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create survey clicks with AI data
+CREATE TABLE IF NOT EXISTS ai_survey_clicks (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  survey_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  expected_reward DECIMAL(10,2),
+  match_score DECIMAL(3,2),
+  confidence_score DECIMAL(3,2),
+  demographic_match DECIMAL(3,2),
+  interest_match DECIMAL(3,2),
+  completion_history DECIMAL(3,2),
+  provider_performance DECIMAL(3,2),
+  clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);_id UUID REFERENCES auth.users(id),
   email TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
@@ -43,7 +140,18 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   vehicle TEXT,
   
   -- Travel
-  travel_frequency TEXT
+  travel_frequency TEXT,
+  
+  -- Referral system
+  referral_code TEXT UNIQUE,
+  total_referrals INTEGER DEFAULT 0,
+  completed_referrals INTEGER DEFAULT 0,
+  
+  -- JustTheTip Integration
+  discord_id TEXT UNIQUE,
+  wallet_address TEXT,
+  payout_preference TEXT DEFAULT 'justthetip' CHECK (payout_preference IN ('justthetip', 'wallet', 'both')),
+  minimum_payout DECIMAL(10,2) DEFAULT 5.00
 );
 
 -- Create surveys table
@@ -80,6 +188,9 @@ CREATE TABLE IF NOT EXISTS survey_clicks (
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE surveys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE survey_clicks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tax_information ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_earnings ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can insert own profile" ON user_profiles;
@@ -121,10 +232,14 @@ CREATE POLICY "Users can view own survey clicks" ON survey_clicks
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_referral_code ON user_profiles(referral_code);
 CREATE INDEX IF NOT EXISTS idx_surveys_active ON surveys(active);
 CREATE INDEX IF NOT EXISTS idx_surveys_payout ON surveys(payout DESC);
 CREATE INDEX IF NOT EXISTS idx_survey_clicks_survey_id ON survey_clicks(survey_id);
 CREATE INDEX IF NOT EXISTS idx_survey_clicks_profile_id ON survey_clicks(profile_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referred_user_id ON referrals(referred_user_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(referral_code);
 
 -- Functions with secure search_path
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -152,6 +267,31 @@ BEGIN
 END;
 $$;
 
+-- Functions for earnings management
+CREATE OR REPLACE FUNCTION increment_user_earnings(
+  p_user_id UUID,
+  p_year INTEGER,
+  p_amount DECIMAL,
+  p_type TEXT
+) RETURNS VOID AS $$
+BEGIN
+  INSERT INTO user_earnings (user_id, year, total_earnings, survey_earnings, referral_earnings)
+  VALUES (
+    p_user_id, 
+    p_year, 
+    p_amount, 
+    CASE WHEN p_type = 'survey' THEN p_amount ELSE 0 END,
+    CASE WHEN p_type = 'referral' THEN p_amount ELSE 0 END
+  )
+  ON CONFLICT (user_id, year)
+  DO UPDATE SET
+    total_earnings = user_earnings.total_earnings + p_amount,
+    survey_earnings = user_earnings.survey_earnings + CASE WHEN p_type = 'survey' THEN p_amount ELSE 0 END,
+    referral_earnings = user_earnings.referral_earnings + CASE WHEN p_type = 'referral' THEN p_amount ELSE 0 END,
+    updated_at = NOW();
+END;
+$$ LANGUAGE plpgsql;
+
 -- Triggers
 DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at 
@@ -173,6 +313,18 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create referrals table
+CREATE TABLE IF NOT EXISTS referrals (
+  id SERIAL PRIMARY KEY,
+  referrer_id INTEGER REFERENCES user_profiles(id),
+  referred_user_id UUID REFERENCES auth.users(id),
+  referral_code TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+  reward_earned DECIMAL(10,2) DEFAULT 0.00,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
 -- Create index for analytics
 CREATE INDEX IF NOT EXISTS idx_analytics_events_user_id ON analytics_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_event_type ON analytics_events(event_type);
@@ -184,6 +336,40 @@ ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can insert own analytics events" ON analytics_events;
 CREATE POLICY "Users can insert own analytics events" ON analytics_events
   FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+
+-- Referral Policies
+DROP POLICY IF EXISTS "Users can view referrals they made" ON referrals;
+DROP POLICY IF EXISTS "Users can insert referrals" ON referrals;
+
+CREATE POLICY "Users can view referrals they made" ON referrals
+  FOR SELECT USING (EXISTS (
+    SELECT 1 FROM user_profiles 
+    WHERE user_profiles.id = referrals.referrer_id 
+    AND user_profiles.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Users can insert referrals" ON referrals
+  FOR INSERT WITH CHECK (true); -- Anyone can insert referrals
+
+-- Tax Information Policies
+CREATE POLICY "Users can view own tax info" ON tax_information
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own tax info" ON tax_information
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own tax info" ON tax_information
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- User Earnings Policies
+CREATE POLICY "Users can view own earnings" ON user_earnings
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own earnings" ON user_earnings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own earnings" ON user_earnings
+  FOR UPDATE USING (auth.uid() = user_id);
 
 -- Insert sample survey data for testing
 INSERT INTO surveys (title, provider, payout, estimated_time, description, affiliate_url, min_age, max_age, required_gender, required_countries, required_employment, required_hobbies) VALUES

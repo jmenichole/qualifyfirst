@@ -1,0 +1,214 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+interface CookieConsent {
+  necessary: boolean;
+  analytics: boolean;
+  marketing: boolean;
+}
+
+export function CookieConsentBanner() {
+  const [showBanner, setShowBanner] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [consent, setConsent] = useState<CookieConsent>({
+    necessary: true, // Always true, required for functionality
+    analytics: false,
+    marketing: false
+  });
+
+  useEffect(() => {
+    // Check if user has already given consent
+    const existingConsent = localStorage.getItem('cookieConsent');
+    if (!existingConsent) {
+      setShowBanner(true);
+    } else {
+      setConsent(JSON.parse(existingConsent));
+    }
+  }, []);
+
+  const handleAcceptAll = () => {
+    const fullConsent = {
+      necessary: true,
+      analytics: true,
+      marketing: true
+    };
+    setConsent(fullConsent);
+    localStorage.setItem('cookieConsent', JSON.stringify(fullConsent));
+    localStorage.setItem('cookieConsentDate', new Date().toISOString());
+    setShowBanner(false);
+    
+    // Enable analytics/marketing if consented
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('consent', 'update', {
+        analytics_storage: 'granted',
+        ad_storage: 'granted'
+      });
+    }
+  };
+
+  const handleRejectAll = () => {
+    const minimalConsent = {
+      necessary: true,
+      analytics: false,
+      marketing: false
+    };
+    setConsent(minimalConsent);
+    localStorage.setItem('cookieConsent', JSON.stringify(minimalConsent));
+    localStorage.setItem('cookieConsentDate', new Date().toISOString());
+    setShowBanner(false);
+  };
+
+  const handleSavePreferences = () => {
+    localStorage.setItem('cookieConsent', JSON.stringify(consent));
+    localStorage.setItem('cookieConsentDate', new Date().toISOString());
+    setShowBanner(false);
+    setShowPreferences(false);
+
+    // Update analytics consent
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('consent', 'update', {
+        analytics_storage: consent.analytics ? 'granted' : 'denied',
+        ad_storage: consent.marketing ? 'granted' : 'denied'
+      });
+    }
+  };
+
+  const updateConsent = (key: keyof CookieConsent, value: boolean) => {
+    setConsent(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  if (!showBanner) return null;
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+      <div className="max-w-7xl mx-auto p-4">
+        {!showPreferences ? (
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                We use cookies to enhance your experience
+              </h3>
+              <p className="text-gray-600">
+                We use necessary cookies to make our site work. We'd also like to set optional 
+                analytics cookies to help us improve it. We won't set optional cookies unless 
+                you enable them.{' '}
+                <a 
+                  href="/legal/privacy-policy" 
+                  className="text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Learn more in our Privacy Policy
+                </a>
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 lg:ml-4">
+              <button
+                onClick={() => setShowPreferences(true)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Manage Preferences
+              </button>
+              <button
+                onClick={handleRejectAll}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Reject All
+              </button>
+              <button
+                onClick={handleAcceptAll}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              >
+                Accept All
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Cookie Preferences</h3>
+              <button
+                onClick={() => setShowPreferences(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-gray-900">Necessary Cookies</h4>
+                  <p className="text-sm text-gray-600">Required for basic site functionality</p>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm text-gray-500 mr-2">Always On</span>
+                  <div className="w-12 h-6 bg-gray-300 rounded-full relative">
+                    <div className="w-5 h-5 bg-white rounded-full shadow transform translate-x-6 translate-y-0.5"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-gray-900">Analytics Cookies</h4>
+                  <p className="text-sm text-gray-600">Help us understand how you use our site</p>
+                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent.analytics}
+                    onChange={(e) => updateConsent('analytics', e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full relative transition ${
+                    consent.analytics ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition ${
+                      consent.analytics ? 'translate-x-6' : 'translate-x-0.5'
+                    } translate-y-0.5`}></div>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-gray-900">Marketing Cookies</h4>
+                  <p className="text-sm text-gray-600">Used to show relevant ads and measure campaign effectiveness</p>
+                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent.marketing}
+                    onChange={(e) => updateConsent('marketing', e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-12 h-6 rounded-full relative transition ${
+                    consent.marketing ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transform transition ${
+                      consent.marketing ? 'translate-x-6' : 'translate-x-0.5'
+                    } translate-y-0.5`}></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleSavePreferences}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              >
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { Survey } from '../lib/lib/matching';
+import { AffiliateDisclosure } from '../components/AffiliateDisclosure';
+import { EarningsDisclaimer } from '../components/EarningsDisclaimer';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -102,7 +104,7 @@ export default function DashboardPage() {
 
   // Apply filters and sorting
   useEffect(() => {
-    let filtered = surveys.filter(survey => {
+    const filtered = surveys.filter(survey => {
       const matchesSearch = searchTerm === '' || 
         survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         survey.provider.toLowerCase().includes(searchTerm.toLowerCase());
@@ -168,12 +170,27 @@ export default function DashboardPage() {
                 {profile?.email}
               </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/smart-dashboard')}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-indigo-700 transition text-sm font-medium flex items-center space-x-2"
+              >
+                <span>🧠</span>
+                <span>AI Dashboard</span>
+              </button>
+              <button
+                onClick={() => router.push('/referrals')}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                Referrals
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Logout
+              </button>
+            </div>
           </div>
           
           <div className="mt-6 flex gap-4">
@@ -193,6 +210,12 @@ export default function DashboardPage() {
               </div>
               <div className="text-sm text-gray-600">Match Rate</div>
             </div>
+          </div>
+          
+          {/* Legal Disclosures */}
+          <div className="mt-6 space-y-3">
+            <EarningsDisclaimer />
+            <AffiliateDisclosure variant="inline" />
           </div>
         </div>
 
