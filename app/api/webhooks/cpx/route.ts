@@ -17,6 +17,9 @@ interface CPXPostback {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎯 CPX Postback received at:', new Date().toISOString());
+    console.log('📍 Request URL:', request.url);
+    
     const url = new URL(request.url);
     const searchParams = url.searchParams;
     
@@ -34,19 +37,38 @@ export async function POST(request: NextRequest) {
       type: searchParams.get('type') || undefined,
     };
 
+    console.log('📊 Parsed CPX data:', JSON.stringify(postbackData, null, 2));
+
     if (!postbackData.user_id || !postbackData.trans_id || !postbackData.status) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      console.error('❌ Missing required parameters');
+      return new NextResponse('0', { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain' }
+      });
     }
 
     if (postbackData.hash && !verifySecureHash(postbackData)) {
-      return NextResponse.json({ error: 'Invalid secure hash' }, { status: 401 });
+      console.error('❌ Hash verification failed');
+      return new NextResponse('0', { 
+        status: 401,
+        headers: { 'Content-Type': 'text/plain' }
+      });
     }
 
-    console.log('CPX postback processed:', postbackData);
+    if (postbackData.status === '1') {
+      console.log('✅ Survey completed! User:', postbackData.user_id, 'Amount: $' + postbackData.amount_usd);
+    } else {
+      console.log('⚠️ Survey not completed. Status:', postbackData.status);
+    }
+
+    console.log('🎉 CPX postback successfully processed!');
 
     return new NextResponse('1', { 
       status: 200,
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 
+        'Content-Type': 'text/plain',
+        'Cache-Control': 'no-cache'
+      }
     });
 
   } catch (error) {
