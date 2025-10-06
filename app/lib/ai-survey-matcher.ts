@@ -22,8 +22,8 @@ interface CompletionFeedback {
   result: 'completed' | 'disqualified' | 'abandoned';
   time_spent: number;
   reward_earned: number;
-  user_attributes: Record<string, any>;
-  survey_attributes: Record<string, any>;
+  user_attributes: Record<string, unknown>;
+  survey_attributes: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -120,7 +120,7 @@ export class AISurveyMatcher {
   private async calculateMatchScore(
     userProfile: UserProfile, 
     survey: SurveyOffer, 
-    historicalData: any
+    historicalData: Record<string, unknown>
   ): Promise<MatchScore> {
     
     // Prepare data for AI analysis
@@ -173,7 +173,7 @@ export class AISurveyMatcher {
   }
 
   // Build prompt for AI matching
-  private buildMatchingPrompt(userProfile: UserProfile, survey: SurveyOffer, historicalData: any): string {
+  private buildMatchingPrompt(userProfile: UserProfile, survey: SurveyOffer, historicalData: Record<string, unknown>): string {
     return `
 Analyze this user-survey match:
 
@@ -241,7 +241,7 @@ Return JSON with:
   }
 
   // Heuristic fallback scoring
-  private getHeuristicMatchScore(userProfile: UserProfile, survey: SurveyOffer, historicalData: any): MatchScore {
+  private getHeuristicMatchScore(userProfile: UserProfile, survey: SurveyOffer, historicalData: Record<string, unknown>): MatchScore {
     const factors = {
       demographic_match: this.calculateDemographicMatch(userProfile, survey),
       interest_match: this.calculateInterestMatch(userProfile, survey),
@@ -312,7 +312,7 @@ Return JSON with:
   }
 
   // Get historical performance data
-  private async getHistoricalPerformance(provider: string, surveyId: string): Promise<any> {
+  private async getHistoricalPerformance(provider: string, surveyId: string): Promise<Record<string, unknown>> {
     try {
       const { data } = await supabase
         .from('survey_completion_feedback')

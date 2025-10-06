@@ -1,26 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
-export default function CPXResearchPage() {
+function CPXResearchContent() {
   const searchParams = useSearchParams();
   const [messageId, setMessageId] = useState<string | null>(null);
   const [wallUrl, setWallUrl] = useState<string>('');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Get message_id from URL parameters
-    const msgId = searchParams.get('message_id');
-    setMessageId(msgId);
-    
-    // Get current user and generate wall URL
-    getCurrentUser();
-  }, [searchParams]);
-
-  const getCurrentUser = async () => {
+  const getCurrentUser = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -48,7 +39,16 @@ export default function CPXResearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Get message_id from URL parameters
+    const msgId = searchParams.get('message_id');
+    setMessageId(msgId);
+    
+    // Get current user and generate wall URL
+    getCurrentUser();
+  }, [searchParams, getCurrentUser]);
 
   if (loading) {
     return (
@@ -150,5 +150,13 @@ export default function CPXResearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CPXResearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CPXResearchContent />
+    </Suspense>
   );
 }

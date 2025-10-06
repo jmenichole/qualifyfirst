@@ -22,7 +22,7 @@ export interface SurveyOffer {
   interests?: string[];
   
   // Provider-specific metadata
-  provider_data?: Record<string, any>;
+  provider_data?: Record<string, unknown>;
 }
 
 export interface UserProfile {
@@ -140,7 +140,7 @@ export class SurveyProviderAPI {
 
     const data = await response.json();
     
-    return data.offers?.map((offer: any) => ({
+    return data.offers?.map((offer: Record<string, unknown>) => ({
       id: `bitlabs_${offer.id}`,
       provider: 'bitlabs',
       title: offer.title || 'Survey Opportunity',
@@ -180,7 +180,7 @@ export class SurveyProviderAPI {
 
     const data = await response.json();
     
-    return data.surveys?.map((survey: any) => ({
+    return data.surveys?.map((survey: Record<string, unknown>) => ({
       id: `cpx_${survey.id}`,
       provider: 'cpx',
       title: survey.title || 'Research Survey',

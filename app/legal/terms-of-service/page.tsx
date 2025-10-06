@@ -81,7 +81,7 @@ export default function TermsOfService() {
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">7. Limitation of Liability</h2>
             <p className="mb-6">
-              QualifyFirst provides services "as is" without warranties. We are not liable for any 
+              QualifyFirst provides services &quot;as is&quot; without warranties. We are not liable for any 
               indirect, incidental, or consequential damages arising from your use of our services.
             </p>
 

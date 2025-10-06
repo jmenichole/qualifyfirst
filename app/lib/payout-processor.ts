@@ -91,7 +91,7 @@ export class PayoutProcessor {
     userId: string, 
     amount: number, 
     type: PayoutTransaction['type'],
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): Promise<boolean> {
     try {
       const { data: profile } = await supabase
@@ -140,7 +140,8 @@ export class PayoutProcessor {
             method = 'justthetip_balance';
           } else {
             // Store large amounts as pending for future wallet payout
-            await this.addPendingEarnings(userId, amount, type, metadata?.survey_id || metadata?.referral_id);
+            await this.addPendingEarnings(userId, amount, type, 
+              (metadata?.survey_id || metadata?.referral_id) as number | undefined);
             success = true;
             method = 'wallet';
           }

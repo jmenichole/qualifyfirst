@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 
 export default function TestReferralPage() {
@@ -23,7 +25,7 @@ export default function TestReferralPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Check localStorage</h2>
             <p className="text-gray-600 mb-4">
-              Open browser dev tools and check localStorage for 'referralCode' after clicking the test link.
+              Open browser dev tools and check localStorage for &apos;referralCode&apos; after clicking the test link.
             </p>
             <button 
               onClick={() => {

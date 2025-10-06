@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { justTheTipIntegration } from '../lib/justthetip-integration';
 import { useNotifications } from './Notifications';
@@ -28,11 +28,7 @@ export function PayoutPreferences({ userId }: PayoutPreferencesProps) {
   const [discordLinking, setDiscordLinking] = useState('');
   const { addNotification } = useNotifications();
 
-  useEffect(() => {
-    loadPayoutSettings();
-  }, [userId]);
-
-  const loadPayoutSettings = async () => {
+  const loadPayoutSettings = useCallback(async () => {
     try {
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -59,7 +55,11 @@ export function PayoutPreferences({ userId }: PayoutPreferencesProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadPayoutSettings();
+  }, [loadPayoutSettings]);
 
   const handleSaveSettings = async () => {
     setSaving(true);
@@ -208,7 +208,7 @@ export function PayoutPreferences({ userId }: PayoutPreferencesProps) {
               name="payout_preference"
               value="justthetip"
               checked={settings.payout_preference === 'justthetip'}
-              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as any })}
+              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as 'justthetip' | 'wallet' })}
               className="mr-3 text-indigo-600"
             />
             <div>
@@ -225,7 +225,7 @@ export function PayoutPreferences({ userId }: PayoutPreferencesProps) {
               name="payout_preference"
               value="wallet"
               checked={settings.payout_preference === 'wallet'}
-              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as any })}
+              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as 'justthetip' | 'wallet' })}
               className="mr-3 text-indigo-600"
             />
             <div>
@@ -242,7 +242,7 @@ export function PayoutPreferences({ userId }: PayoutPreferencesProps) {
               name="payout_preference"
               value="both"
               checked={settings.payout_preference === 'both'}
-              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as any })}
+              onChange={(e) => setSettings({ ...settings, payout_preference: e.target.value as 'justthetip' | 'wallet' | 'both' })}
               className="mr-3 text-indigo-600"
             />
             <div>

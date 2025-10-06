@@ -13,7 +13,7 @@ interface WebhookData {
   status: 'completed' | 'disqualified' | 'abandoned';
   payout: number;
   time_spent: number;
-  provider_data?: Record<string, any>;
+  provider_data?: Record<string, unknown>;
 }
 
 export async function POST(request: NextRequest) {

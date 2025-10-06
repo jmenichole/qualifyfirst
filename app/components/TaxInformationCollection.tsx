@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from './Notifications';
 
@@ -29,11 +29,7 @@ export function TaxInformationCollection({ userId, totalEarnings, onComplete }: 
   const [showForm, setShowForm] = useState(false);
   const { addNotification } = useNotifications();
 
-  useEffect(() => {
-    checkTaxInfoRequired();
-  }, [userId, totalEarnings]);
-
-  const checkTaxInfoRequired = async () => {
+  const checkTaxInfoRequired = useCallback(async () => {
     if (totalEarnings >= 600) {
       // Check if tax info already collected
       const { data: existingTaxInfo } = await supabase
@@ -46,7 +42,11 @@ export function TaxInformationCollection({ userId, totalEarnings, onComplete }: 
         setShowForm(true);
       }
     }
-  };
+  }, [userId, totalEarnings]);
+
+  useEffect(() => {
+    checkTaxInfoRequired();
+  }, [checkTaxInfoRequired]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

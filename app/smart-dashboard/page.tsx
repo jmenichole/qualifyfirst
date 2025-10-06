@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 import { surveyProviderAPI, type SurveyOffer, type UserProfile } from '../lib/survey-provider-api';
@@ -25,19 +25,15 @@ interface SmartMatch extends SurveyOffer {
 
 export default function SmartDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [smartMatches, setSmartMatches] = useState<SmartMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchingInProgress, setMatchingInProgress] = useState(false);
-  const [payoutSummary, setPayoutSummary] = useState<any>(null);
+  const [payoutSummary, setPayoutSummary] = useState<{ totalEarnings: number; pendingAmount: number; paidAmount: number; justTheTipBalance: number; recentTransactions: unknown[] } | null>(null);
   const [selectedTab, setSelectedTab] = useState<'surveys' | 'payouts' | 'analytics'>('surveys');
 
-  useEffect(() => {
-    initializeDashboard();
-  }, []);
-
-  const initializeDashboard = async () => {
+  const initializeDashboard = useCallback(async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       
@@ -56,7 +52,11 @@ export default function SmartDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    initializeDashboard();
+  }, [initializeDashboard]);
 
   const loadUserProfile = async (userId: string) => {
     const { data: profile } = await supabase
@@ -204,7 +204,7 @@ export default function SmartDashboard() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setSelectedTab(tab.id as any)}
+                onClick={() => setSelectedTab(tab.id as 'surveys' | 'payouts' | 'analytics')}
                 className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                   selectedTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
@@ -246,7 +246,7 @@ export default function SmartDashboard() {
                   Recommended Surveys ({smartMatches.length})
                 </h3>
                 <button
-                  onClick={() => loadSmartMatches(user.id)}
+                  onClick={() => user && loadSmartMatches(user.id)}
                   disabled={matchingInProgress}
                   className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2"
                 >
@@ -328,8 +328,8 @@ export default function SmartDashboard() {
         )}
 
         {/* Payouts Tab */}
-        {selectedTab === 'payouts' && (
-          <PayoutPreferences userId={user?.id} />
+        {selectedTab === 'payouts' && user?.id && (
+          <PayoutPreferences userId={user.id} />
         )}
 
         {/* Analytics Tab */}
