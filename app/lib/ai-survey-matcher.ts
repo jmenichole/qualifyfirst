@@ -241,7 +241,7 @@ Return JSON with:
   }
 
   // Heuristic fallback scoring
-  private getHeuristicMatchScore(userProfile: UserProfile, survey: SurveyOffer, historicalData: Record<string, unknown>): MatchScore {
+  private getHeuristicMatchScore(userProfile: UserProfile, survey: SurveyOffer, _historicalData: Record<string, unknown>): MatchScore {
     const factors = {
       demographic_match: this.calculateDemographicMatch(userProfile, survey),
       interest_match: this.calculateInterestMatch(userProfile, survey),
@@ -312,7 +312,7 @@ Return JSON with:
   }
 
   // Get historical performance data
-  private async getHistoricalPerformance(provider: string, surveyId: string): Promise<Record<string, unknown>> {
+  private async getHistoricalPerformance(provider: string, _surveyId: string): Promise<Record<string, unknown>> {
     try {
       const { data } = await supabase
         .from('survey_completion_feedback')

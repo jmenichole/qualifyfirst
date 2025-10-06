@@ -97,7 +97,7 @@ export async function getReferralStats(userId: string) {
 // Complete referral (when referred user completes their first survey)
 export async function completeReferral(referredUserId: string) {
   try {
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('referrals')
       .update({ 
         status: 'completed',

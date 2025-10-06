@@ -33,32 +33,7 @@ export default function SmartDashboard() {
   const [payoutSummary, setPayoutSummary] = useState<{ totalEarnings: number; pendingAmount: number; paidAmount: number; justTheTipBalance: number; recentTransactions: unknown[] } | null>(null);
   const [selectedTab, setSelectedTab] = useState<'surveys' | 'payouts' | 'analytics'>('surveys');
 
-  const initializeDashboard = useCallback(async () => {
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        router.push('/');
-        return;
-      }
-
-      setUser(authUser);
-      await loadUserProfile(authUser.id);
-      await loadPayoutSummary(authUser.id);
-      await loadSmartMatches(authUser.id);
-
-    } catch (error) {
-      console.error('Dashboard initialization error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    initializeDashboard();
-  }, [initializeDashboard]);
-
-  const loadUserProfile = async (userId: string) => {
+  const loadUserProfile = useCallback(async (userId: string) => {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
@@ -85,14 +60,14 @@ export default function SmartDashboard() {
 
       setUserProfile(aiProfile);
     }
-  };
+  }, []);
 
-  const loadPayoutSummary = async (userId: string) => {
+  const loadPayoutSummary = useCallback(async (userId: string) => {
     const summary = await payoutProcessor.getUserPayoutSummary(userId);
     setPayoutSummary(summary);
-  };
+  }, []);
 
-  const loadSmartMatches = async (userId: string) => {
+  const loadSmartMatches = useCallback(async (userId: string) => {
     if (!userProfile) return;
 
     setMatchingInProgress(true);
@@ -111,7 +86,32 @@ export default function SmartDashboard() {
     } finally {
       setMatchingInProgress(false);
     }
-  };
+  }, [userProfile]);
+
+  const initializeDashboard = useCallback(async () => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) {
+        router.push('/');
+        return;
+      }
+
+      setUser(authUser);
+      await loadUserProfile(authUser.id);
+      await loadPayoutSummary(authUser.id);
+      await loadSmartMatches(authUser.id);
+
+    } catch (error) {
+      console.error('Dashboard initialization error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router, loadUserProfile, loadPayoutSummary, loadSmartMatches]);
+
+  useEffect(() => {
+    initializeDashboard();
+  }, [initializeDashboard]);
 
   const handleSurveyClick = async (survey: SmartMatch) => {
     if (!user) return;

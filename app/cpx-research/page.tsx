@@ -39,7 +39,7 @@ function CPXResearchContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [messageId]);
 
   useEffect(() => {
     // Get message_id from URL parameters
