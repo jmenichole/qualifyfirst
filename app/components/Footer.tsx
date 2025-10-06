@@ -86,11 +86,11 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex flex-col items-center text-center space-y-4">
             <p className="text-gray-400 text-sm">
               © 2025 Mischief Manager Inc dba QualifyFirst. All rights reserved.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-white transition">
                 <span className="sr-only">Twitter</span>
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
