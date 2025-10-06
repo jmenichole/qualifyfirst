@@ -13,13 +13,14 @@ interface CPXPostback {
   status: string;           // "1" = completed, "2" = canceled/screened out
   trans_id: string;         // CPX unique transaction ID
   user_id: string;          // Your user identifier
-  subid_1?: string;         // Your subId1 (optional)
-  subid_2?: string;         // Your subId2 (optional)
+  sub_id?: string;          // Your subId1 (renamed from subid_1)
+  sub_id_2?: string;        // Your subId2 (renamed from subid_2)
   amount_local: string;     // Amount in your currency
   amount_usd: string;       // Amount in USD
+  offer_id?: string;        // CPX offer identifier
+  hash?: string;            // Security hash (renamed from secure_hash)
   ip_click: string;         // User click IP address
-  type: string;             // Type: "out", "complete", or "bonus"
-  secure_hash?: string;     // MD5 hash for validation
+  type?: string;            // Type: "out", "complete", or "bonus"
 }
 
 export async function POST(request: NextRequest) {
@@ -34,13 +35,14 @@ export async function POST(request: NextRequest) {
       status: searchParams.get('status') || '',
       trans_id: searchParams.get('trans_id') || '',
       user_id: searchParams.get('user_id') || '',
-      subid_1: searchParams.get('subid_1') || undefined,
-      subid_2: searchParams.get('subid_2') || undefined,
+      sub_id: searchParams.get('sub_id') || undefined,
+      sub_id_2: searchParams.get('sub_id_2') || undefined,
       amount_local: searchParams.get('amount_local') || '',
       amount_usd: searchParams.get('amount_usd') || '',
+      offer_id: searchParams.get('offer_id') || undefined,
+      hash: searchParams.get('hash') || undefined,
       ip_click: searchParams.get('ip_click') || '',
-      type: searchParams.get('type') || '',
-      secure_hash: searchParams.get('secure_hash') || undefined,
+      type: searchParams.get('type') || undefined,
     };
 
     console.log('CPX Postback data:', postbackData);
@@ -51,8 +53,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Verify secure hash if provided (CPX uses secure_hash instead of signature)
-    if (postbackData.secure_hash && !verifySecureHash(postbackData)) {
+    // Verify secure hash if provided (CPX uses hash parameter)
+    if (postbackData.hash && !verifySecureHash(postbackData)) {
       console.error('Invalid secure hash');
       return NextResponse.json({ error: 'Invalid secure hash' }, { status: 401 });
     }
@@ -94,7 +96,7 @@ function verifySecureHash(data: CPXPostback): boolean {
     // Get the security hash from environment variables
     const securityHash = process.env.CPX_SECURITY_HASH_KEY || 'VlS4csbvdjWxI6J6AZwwsOD3BTC1pkKL';
     
-    if (!data.secure_hash || !data.trans_id) {
+    if (!data.hash || !data.trans_id) {
       return false;
     }
 
@@ -102,7 +104,7 @@ function verifySecureHash(data: CPXPostback): boolean {
     const hashString = data.trans_id + '-' + securityHash;
     const expectedHash = crypto.createHash('md5').update(hashString).digest('hex');
 
-    return data.secure_hash.toLowerCase() === expectedHash.toLowerCase();
+    return data.hash.toLowerCase() === expectedHash.toLowerCase();
   } catch (error) {
     console.error('Secure hash verification error:', error);
     return false;

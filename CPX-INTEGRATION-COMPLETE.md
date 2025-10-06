@@ -4,7 +4,7 @@
 
 ### 1. **Postback URL** (Main Settings)
 ```
-https://qualifyfirst.vercel.app/api/webhooks/cpx
+https://qualifyfirst.vercel.app/api/webhooks/cpx?status={status}&trans_id={trans_id}&user_id={user_id}&sub_id={subid_1}&sub_id_2={subid_2}&amount_local={amount_local}&amount_usd={amount_usd}&offer_id={offer_ID}&hash={secure_hash}&ip_click={ip_click}&type={type}
 ```
 
 ### 2. **Redirect URL** (Survey Completion)
@@ -21,7 +21,7 @@ https://qualifyfirst.vercel.app/cpx-research?message_id={message_id}
 2. **Navigate to Settings → API Settings**
 3. **Enter Postback URL:**
    ```
-   https://qualifyfirst.vercel.app/api/webhooks/cpx
+   https://qualifyfirst.vercel.app/api/webhooks/cpx?status={status}&trans_id={trans_id}&user_id={user_id}&sub_id={subid_1}&sub_id_2={subid_2}&amount_local={amount_local}&amount_usd={amount_usd}&offer_id={offer_ID}&hash={secure_hash}&ip_click={ip_click}&type={type}
    ```
 4. **Save the configuration**
 
@@ -42,7 +42,7 @@ https://qualifyfirst.vercel.app/cpx-research?message_id={message_id}
 2. **User completes survey** on CPX Research wall
 3. **CPX redirects back to:** `https://qualifyfirst.vercel.app/cpx-research?message_id=12345`
 4. **Your page shows** success/failure message based on message_id
-5. **Postback is sent to:** `https://qualifyfirst.vercel.app/api/webhooks/cpx`
+5. **Postback is sent to:** `https://qualifyfirst.vercel.app/api/webhooks/cpx` with all completion parameters
 
 ---
 
