@@ -179,6 +179,12 @@ export default function DashboardPage() {
                 <span>AI Dashboard</span>
               </button>
               <button
+                onClick={() => router.push('/microtasks')}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              >
+                Microtasks
+              </button>
+              <button
                 onClick={() => router.push('/referrals')}
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-medium"
               >
@@ -212,6 +218,25 @@ export default function DashboardPage() {
             </div>
           </div>
           
+          {/* Microtasks Banner */}
+          <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-3xl">✨</div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Try Microtasks!</h3>
+                <p className="text-sm text-gray-700 mb-2">
+                  Complete quick tasks like link validation, data verification, and content review. Earn $0.25-$2.50 per task in just 2-10 minutes!
+                </p>
+                <button
+                  onClick={() => router.push('/microtasks')}
+                  className="text-sm font-semibold text-green-700 hover:text-green-800"
+                >
+                  Browse Microtasks →
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Legal Disclosures */}
           <div className="mt-6 space-y-3">
             <EarningsDisclaimer />

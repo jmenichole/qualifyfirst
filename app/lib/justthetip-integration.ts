@@ -13,9 +13,10 @@ interface JustTheTipUser {
 interface PayoutRequest {
   user_id: string;
   amount: number;
-  type: 'survey_completion' | 'referral_bonus' | 'manual_payout';
+  type: 'survey_completion' | 'referral_bonus' | 'manual_payout' | 'microtask_completion';
   survey_id?: number;
   referral_id?: number;
+  microtask_id?: number;
 }
 
 export class JustTheTipIntegration {
@@ -145,6 +146,8 @@ export class JustTheTipIntegration {
         return `Survey completion reward - Survey #${request.survey_id}`;
       case 'referral_bonus':
         return `Referral bonus - Referral #${request.referral_id}`;
+      case 'microtask_completion':
+        return `Microtask completion reward - Task #${request.microtask_id}`;
       case 'manual_payout':
         return 'Manual payout from QualifyFirst';
       default:

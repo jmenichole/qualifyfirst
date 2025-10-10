@@ -12,7 +12,11 @@ export type AnalyticsEvent =
   | 'user_logged_in'
   | 'user_logged_out'
   | 'dashboard_viewed'
-  | 'filters_used';
+  | 'filters_used'
+  | 'microtask_viewed'
+  | 'microtask_started'
+  | 'microtask_completed'
+  | 'microtask_submitted';
 
 // Track analytics events
 export async function trackEvent(
@@ -69,6 +73,26 @@ export async function trackSurveyInteraction(
 ) {
   await trackEvent(action === 'clicked' ? 'survey_clicked' : 'survey_completed', {
     survey_id: surveyId,
+    action,
+    ...additionalData
+  });
+}
+
+// Track microtask interactions
+export async function trackMicrotaskInteraction(
+  microtaskId: number,
+  action: 'viewed' | 'started' | 'completed' | 'submitted',
+  additionalData?: Record<string, string | number | boolean>
+) {
+  const eventMap = {
+    viewed: 'microtask_viewed',
+    started: 'microtask_started',
+    completed: 'microtask_completed',
+    submitted: 'microtask_submitted'
+  } as const;
+
+  await trackEvent(eventMap[action], {
+    microtask_id: microtaskId,
     action,
     ...additionalData
   });
