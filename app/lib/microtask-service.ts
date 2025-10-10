@@ -414,8 +414,8 @@ export class MicrotaskService {
 
       // Filter and return microtasks
       const microtasks = assignments
-        .map(a => a.microtasks)
-        .filter(m => 
+        .map((a: { microtask_id: number; microtasks: unknown }) => a.microtasks as Microtask)
+        .filter((m: Microtask) => 
           m && 
           m.active && 
           m.completed_slots < m.total_slots &&
