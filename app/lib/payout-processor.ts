@@ -7,7 +7,7 @@ interface PayoutTransaction {
   id: number;
   user_id: string;
   amount: number;
-  type: 'survey_completion' | 'referral_bonus' | 'manual_payout';
+  type: 'survey_completion' | 'referral_bonus' | 'manual_payout' | 'microtask_completion';
   method: 'justthetip_balance' | 'wallet' | 'split';
   status: 'pending' | 'completed' | 'failed';
   transaction_id?: string;
@@ -82,6 +82,39 @@ export class PayoutProcessor {
 
     } catch (error) {
       console.error('Referral payout error:', error);
+      return false;
+    }
+  }
+
+  // Process microtask completion payout
+  async processMicrotaskPayout(userId: string, microtaskId: number, amount: number): Promise<boolean> {
+    try {
+      // Get user payout preferences
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('discord_id, wallet_address, payout_preference, minimum_payout')
+        .eq('user_id', userId)
+        .single();
+
+      if (!profile) {
+        throw new Error('User profile not found');
+      }
+
+      // Check if amount meets minimum payout threshold
+      const currentEarnings = await this.getPendingEarnings(userId);
+      const totalAmount = currentEarnings + amount;
+
+      if (totalAmount >= profile.minimum_payout) {
+        // Process immediate payout
+        return await this.executePayoutTransfer(userId, totalAmount, 'microtask_completion', { microtask_id: microtaskId });
+      } else {
+        // Store as pending earnings
+        await this.addPendingEarnings(userId, amount, 'microtask_completion', microtaskId);
+        return true;
+      }
+
+    } catch (error) {
+      console.error('Microtask payout error:', error);
       return false;
     }
   }
