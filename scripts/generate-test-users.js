@@ -1,3 +1,13 @@
+/**
+ * QualifyFirst - Generate Test User IDs for CPX Research Testing
+ * 
+ * Copyright (c) 2025 Mischief Manager Inc dba QualifyFirst
+ * All rights reserved.
+ * 
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 // Generate Test User IDs for CPX Research Testing
 // Creates realistic user IDs that match your system format
 
