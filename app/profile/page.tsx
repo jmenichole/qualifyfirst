@@ -10,14 +10,15 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../lib/supabase';
+import { getMagicClient } from '../lib/magic/client';
 import { profileQuestions, ProfileAnswer } from '../lib/lib/questions';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentQuestion, setCurrentQuestion] = useState(-2); // Start at -2 for email, -1 for consent
   const [answers, setAnswers] = useState<ProfileAnswer>({});
   const [email, setEmail] = useState('');
@@ -25,6 +26,13 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+
+  useEffect(() => {
+    const urlError = searchParams?.get('error');
+    if (urlError) {
+      setError(`Error: ${urlError}`);
+    }
+  }, [searchParams]);
 
   const question = currentQuestion >= 0 ? profileQuestions[currentQuestion] : null;
   const progress = currentQuestion >= 0 ? ((currentQuestion + 1) / profileQuestions.length) * 100 : 0;
@@ -77,7 +85,9 @@ export default function ProfilePage() {
   const handleSubmit = async () => {
     setLoading(true);
     console.log('Starting profile submission...', { email, answers });
-    
+
+    let redirectInitiated = false;
+
     try {
       // Sign up the user
       // Store profile data temporarily in localStorage
@@ -88,30 +98,46 @@ export default function ProfilePage() {
       console.log('Storing profile data temporarily:', profileData);
       localStorage.setItem('pendingProfile', JSON.stringify(profileData));
 
-      console.log('Sending magic link for authentication...');
-      const { error: authError } = await supabase.auth.signInWithOtp({
+      console.log('Preparing Magic link for authentication...');
+
+      const magic = await getMagicClient();
+
+      if (!magic) {
+        throw new Error(
+          'Magic publishable key is missing. Add NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY to your environment.',
+        );
+      }
+
+      const redirectUrl = new URL('/auth/magic', window.location.origin);
+      redirectUrl.searchParams.set('returnTo', 'profile-complete');
+      redirectUrl.searchParams.set('email', email);
+
+      const loginPromise = magic.auth.loginWithMagicLink({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?returnTo=profile-complete`,
-        }
+        showUI: false,
+        redirectURI: redirectUrl.toString(),
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
-      console.log('Magic link sent successfully');
+      console.log('Magic link requested successfully');
 
+      redirectInitiated = true;
       router.push(`/profile/complete?email=${encodeURIComponent(email)}`);
+
+      await loginPromise;
     } catch (err: unknown) {
       console.error('Profile submission error:', err);
-      if (err instanceof Error) {
-        setError(`Error: ${err.message}`);
+      const message =
+        err instanceof Error ? err.message : 'Failed to save profile. Please try again.';
+
+      if (redirectInitiated) {
+        router.replace(`/profile?error=${encodeURIComponent(message)}`);
       } else {
-        setError('Failed to save profile. Please try again.');
+        setError(`Error: ${message}`);
       }
     } finally {
-      setLoading(false);
+      if (!redirectInitiated) {
+        setLoading(false);
+      }
     }
   };
 
@@ -339,3 +365,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

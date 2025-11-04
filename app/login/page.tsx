@@ -12,22 +12,25 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '../lib/supabase';
+import { useSearchParams } from 'next/navigation';
+import { getMagicClient } from '../lib/magic/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+
+  const returnToParam = searchParams?.get('returnTo') || undefined;
 
   useEffect(() => {
     // Check for error in URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlError = urlParams.get('error');
+    const urlError = searchParams?.get('error');
     if (urlError) {
-      setError(decodeURIComponent(urlError));
+      setError(urlError);
     }
-  }, []);
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,17 +38,32 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
-      });
+      const magic = await getMagicClient();
 
-      if (error) throw error;
-      
+      if (!magic) {
+        throw new Error(
+          'Magic publishable key is missing. Add NEXT_PUBLIC_MAGIC_PUBLISHABLE_KEY to your environment.',
+        );
+      }
+
+      const redirectUrl = new URL('/auth/magic', window.location.origin);
+
+      if (returnToParam) {
+        redirectUrl.searchParams.set('returnTo', returnToParam);
+      }
+
+      redirectUrl.searchParams.set('email', email);
+
+      // Let the user know we sent the email while Magic processes the request.
       setSent(true);
+
+      await magic.auth.loginWithMagicLink({
+        email,
+        showUI: false,
+        redirectURI: redirectUrl.toString(),
+      });
     } catch (err: unknown) {
+      setSent(false);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -64,10 +82,10 @@ export default function LoginPage() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Check your email</h2>
           <p className="text-gray-600 mb-6">
-            We sent a magic link to <strong>{email}</strong>
+            We sent a Magic login link to <strong>{email}</strong>
           </p>
           <p className="text-sm text-gray-500 mb-4">
-            Click the link in the email to access your dashboard
+            Click the link in the email to finish signing in. We&apos;ll redirect you automatically once Magic verifies it.
           </p>
           <Link href="/" className="text-indigo-600 hover:text-indigo-700 text-sm">
             Back to home
