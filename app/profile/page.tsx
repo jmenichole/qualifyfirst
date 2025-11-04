@@ -11,13 +11,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getMagicClient } from '../lib/magic/client';
 import { profileQuestions, ProfileAnswer } from '../lib/lib/questions';
 
 export default function ProfilePage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [currentQuestion, setCurrentQuestion] = useState(-2); // Start at -2 for email, -1 for consent
   const [answers, setAnswers] = useState<ProfileAnswer>({});
@@ -26,6 +25,27 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [gdprConsent, setGdprConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Warm the Magic SDK so we avoid race conditions when the user submits.
+    getMagicClient().catch((sdkError) => {
+      console.error('Failed to preload Magic SDK:', sdkError);
+      if (isMounted) {
+        setError((prev) =>
+          prev
+            ? prev
+            : 'We could not load the Magic login SDK. Refresh the page and try again.',
+        );
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const urlError = searchParams?.get('error');
@@ -84,16 +104,15 @@ export default function ProfilePage() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setError('');
     console.log('Starting profile submission...', { email, answers });
-
-    let redirectInitiated = false;
 
     try {
       // Sign up the user
       // Store profile data temporarily in localStorage
-      const profileData = { 
+      const profileData = {
         email,
-        ...answers 
+        ...answers
       };
       console.log('Storing profile data temporarily:', profileData);
       localStorage.setItem('pendingProfile', JSON.stringify(profileData));
@@ -111,33 +130,45 @@ export default function ProfilePage() {
       const redirectUrl = new URL('/auth/magic', window.location.origin);
       redirectUrl.searchParams.set('returnTo', 'profile-complete');
       redirectUrl.searchParams.set('email', email);
+      let loginPromise: Promise<unknown> | null = null;
 
-      const loginPromise = magic.auth.loginWithMagicLink({
-        email,
-        showUI: false,
-        redirectURI: redirectUrl.toString(),
-      });
+      try {
+        loginPromise = magic.auth.loginWithMagicLink({
+          email,
+          redirectURI: redirectUrl.toString(),
+        });
+      } catch (loginError) {
+        throw loginError;
+      }
+
+      const pendingLoginPromise = loginPromise;
+
+      if (!pendingLoginPromise) {
+        throw new Error('Unable to start the Magic login request.');
+      }
 
       console.log('Magic link requested successfully');
 
-      redirectInitiated = true;
-      router.push(`/profile/complete?email=${encodeURIComponent(email)}`);
+      setSubmittedEmail(email);
 
-      await loginPromise;
+      pendingLoginPromise.catch((asyncError) => {
+        console.error('Magic link request failed after submission:', asyncError);
+        setSubmittedEmail(null);
+        setError(
+          `Error: ${
+            asyncError instanceof Error
+              ? asyncError.message
+              : 'Failed to send the magic link. Please try again.'
+          }`,
+        );
+      });
     } catch (err: unknown) {
       console.error('Profile submission error:', err);
       const message =
         err instanceof Error ? err.message : 'Failed to save profile. Please try again.';
-
-      if (redirectInitiated) {
-        router.replace(`/profile?error=${encodeURIComponent(message)}`);
-      } else {
-        setError(`Error: ${message}`);
-      }
+      setError(`Error: ${message}`);
     } finally {
-      if (!redirectInitiated) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -149,6 +180,73 @@ export default function ProfilePage() {
       : [...current, option];
     handleAnswer(updated);
   };
+
+  if (submittedEmail) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-2xl mx-auto pt-8">
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile complete!</h1>
+            <p className="text-gray-600">
+              We sent a magic login link to{' '}
+              <span className="font-semibold text-gray-900">{submittedEmail}</span>.
+              Click it to finish activating your account.
+            </p>
+          </div>
+
+          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-6 mb-6">
+            <h2 className="font-semibold text-gray-900 mb-2">Next steps</h2>
+            <ul className="space-y-2 text-gray-700 list-disc list-inside">
+              <li>Open the email on the same device you used to start this profile.</li>
+              <li>Click the magic link so we can verify you with Magic and Supabase.</li>
+              <li>We&apos;ll automatically save your profile and send you to the dashboard.</li>
+            </ul>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-6">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-3 text-center">
+            <button
+              onClick={() => {
+                setSubmittedEmail(null);
+                setError('');
+                setLoading(false);
+              }}
+              className="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition"
+            >
+              Edit answers
+            </button>
+            <Link
+              href="/"
+              className="block w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition"
+            >
+              Back to home
+            </Link>
+            <p className="text-sm text-gray-500">
+              Didn&apos;t see an email? Double-check spam or request a new link from the{' '}
+              <Link href="/login" className="text-indigo-600 hover:text-indigo-700">
+                login page
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">

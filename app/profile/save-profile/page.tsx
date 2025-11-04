@@ -37,13 +37,31 @@ export default function SaveProfilePage() {
 
         const pendingProfile = JSON.parse(pendingProfileStr);
         
-        // Generate referral code and add user_id to profile data
-        const userReferralCode = pendingProfile.email.substring(0, pendingProfile.email.indexOf('@')).toLowerCase().replace(/[^a-z0-9]/g, '') + Math.random().toString(36).substring(2, 6);
-        
+        const atIndex = pendingProfile.email.indexOf('@');
+        const emailPrefix = (atIndex >= 0 ? pendingProfile.email.substring(0, atIndex) : pendingProfile.email)
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+
+        const generateReferralCode = () =>
+          `${emailPrefix}${Math.random().toString(36).substring(2, 6)}`;
+
+        const { data: existingProfile, error: existingProfileError } = await supabase
+          .from('user_profiles')
+          .select('referral_code')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingProfileError && existingProfileError.code !== 'PGRST116') {
+          throw existingProfileError;
+        }
+
+        const referralCode = existingProfile?.referral_code || generateReferralCode();
+        const isNewProfile = !existingProfile;
+
         const profileData = {
           ...pendingProfile,
           user_id: user.id,
-          referral_code: userReferralCode
+          referral_code: referralCode
         };
 
         console.log('Saving profile with user_id:', profileData);
@@ -51,7 +69,7 @@ export default function SaveProfilePage() {
         // Save to database
         const { data, error: profileError } = await supabase
           .from('user_profiles')
-          .insert([profileData])
+          .upsert(profileData, { onConflict: 'user_id' })
           .select();
 
         if (profileError) {
@@ -66,9 +84,12 @@ export default function SaveProfilePage() {
         const referralCode = urlParams.get('ref') || localStorage.getItem('referralCode');
         
         if (referralCode) {
-          // Track the referral
-          const { trackReferralSignup } = await import('../../lib/referrals');
-          await trackReferralSignup(referralCode, user.id);
+          if (isNewProfile) {
+            // Track the referral for brand-new profiles only.
+            const { trackReferralSignup } = await import('../../lib/referrals');
+            await trackReferralSignup(referralCode, user.id);
+          }
+
           localStorage.removeItem('referralCode'); // Clean up
         }
         
