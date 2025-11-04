@@ -1,21 +1,37 @@
 /**
  * QualifyFirst - Magic Identity Provider Registration Route
  *
- * Allows the dashboard to programmatically register an external
- * authentication provider with Magic using the Magic Admin API.
+ * Supports registering one or many providers (QualifyFirst,
+ * JustTheTip, TiltCheck, etc.) against the same Magic project so
+ * every app can authenticate the exact same user accounts.
  */
 
 import { NextResponse } from 'next/server'
 
-const MAGIC_PROVIDER_ENDPOINT = 'https://tee.express.magiclabs.com/v1/identity/provider'
+import {
+  REQUIRED_FIELDS,
+  type MagicProviderPayload,
+  type MagicProviderBatchRequest,
+  registerMagicProvider,
+  registerMagicProvidersBatch,
+  sanitizeProviderPayload,
+  findMissingFields,
+} from '../../../lib/magic/provider'
 
-type MagicProviderPayload = {
-  issuer?: string
-  audience?: string
-  jwks_uri?: string
+const invalidBodyResponse = () =>
+  NextResponse.json(
+    {
+      error:
+        'Invalid payload. Provide issuer/audience/jwks_uri or a providers array with those fields.',
+    },
+    { status: 400 },
+  )
+
+const isBatchRequest = (body: unknown): body is MagicProviderBatchRequest => {
+  if (!body || typeof body !== 'object') return false
+  const maybe = body as Partial<MagicProviderBatchRequest>
+  return Array.isArray(maybe.providers)
 }
-
-const REQUIRED_FIELDS: (keyof Required<MagicProviderPayload>)[] = ['issuer', 'audience', 'jwks_uri']
 
 export async function POST(request: Request) {
   const secretKey = process.env.MAGIC_SECRET_KEY
@@ -23,27 +39,49 @@ export async function POST(request: Request) {
   if (!secretKey) {
     return NextResponse.json(
       {
-        error: 'Magic secret key is not configured. Set MAGIC_SECRET_KEY in your environment.',
+        error:
+          'Magic secret key is not configured. Set MAGIC_SECRET_KEY in your environment.',
       },
       { status: 500 },
     )
   }
 
-  let payload: MagicProviderPayload
+  let body: unknown
 
   try {
-    payload = await request.json()
+    body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
-  const sanitizedPayload: Record<(typeof REQUIRED_FIELDS)[number], string> = {
-    issuer: typeof payload.issuer === 'string' ? payload.issuer.trim() : '',
-    audience: typeof payload.audience === 'string' ? payload.audience.trim() : '',
-    jwks_uri: typeof payload.jwks_uri === 'string' ? payload.jwks_uri.trim() : '',
+  if (isBatchRequest(body)) {
+    if (body.providers.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one provider payload is required.' },
+        { status: 400 },
+      )
+    }
+
+    const batchResult = await registerMagicProvidersBatch(
+      secretKey,
+      body.providers,
+      body.shared_audience,
+    )
+
+    if (!batchResult.success) {
+      const status = 'details' in batchResult ? 400 : 502
+      return NextResponse.json(batchResult, { status })
+    }
+
+    return NextResponse.json(batchResult)
   }
 
-  const missingFields = REQUIRED_FIELDS.filter((field) => !sanitizedPayload[field])
+  if (!body || typeof body !== 'object') {
+    return invalidBodyResponse()
+  }
+
+  const payload = sanitizeProviderPayload(body as MagicProviderPayload)
+  const missingFields = findMissingFields(payload)
 
   if (missingFields.length > 0) {
     return NextResponse.json(
@@ -54,48 +92,54 @@ export async function POST(request: Request) {
     )
   }
 
-  try {
-    const response = await fetch(MAGIC_PROVIDER_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Magic-Secret-Key': secretKey,
-      },
-      body: JSON.stringify(sanitizedPayload),
-    })
+  const result = await registerMagicProvider(secretKey, payload)
 
-    const responseBody = await response
-      .json()
-      .catch(() => ({ message: 'Magic API did not return JSON content.' }))
-
-    if (!response.ok) {
-      return NextResponse.json(
-        {
-          error: 'Magic API request failed.',
-          details: responseBody,
-        },
-        { status: response.status },
-      )
-    }
-
-    return NextResponse.json({ success: true, provider: responseBody })
-  } catch (error) {
-    console.error('Magic provider registration failed:', error)
+  if (!result.success) {
     return NextResponse.json(
       {
-        error: 'Unable to register Magic provider. Verify network connectivity and credentials.',
+        error: result.error,
+        details: result.details,
       },
-      { status: 502 },
+      { status: result.status },
     )
   }
+
+  return NextResponse.json({ success: true, provider: result.provider })
 }
 
 export async function GET() {
   return NextResponse.json(
     {
       message:
-        'POST issuer, audience, and jwks_uri to register a Magic provider. This endpoint proxies the Magic Admin API using the configured secret key.',
+        'POST issuer, audience, and jwks_uri or provide a providers array. Use shared_audience to keep QualifyFirst, JustTheTip, and TiltCheck on the same Magic user pool.',
       required_fields: REQUIRED_FIELDS,
+      examples: {
+        single: {
+          issuer: 'https://your-auth-provider.com',
+          audience: 'qualifyfirst-users',
+          jwks_uri: 'https://your-auth-provider.com/.well-known/jwks.json',
+        },
+        batch: {
+          shared_audience: 'qualifyfirst-users',
+          providers: [
+            {
+              name: 'QualifyFirst Dashboard',
+              issuer: 'https://your-auth-provider.com',
+              jwks_uri: 'https://your-auth-provider.com/.well-known/jwks.json',
+            },
+            {
+              name: 'JustTheTip Discord Bot',
+              issuer: 'https://your-justthetip-provider.com',
+              jwks_uri: 'https://your-justthetip-provider.com/.well-known/jwks.json',
+            },
+            {
+              name: 'TiltCheck Tools',
+              issuer: 'https://your-tiltcheck-provider.com',
+              jwks_uri: 'https://your-tiltcheck-provider.com/.well-known/jwks.json',
+            },
+          ],
+        },
+      },
     },
     { status: 200 },
   )
