@@ -339,19 +339,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-<div className="space-y-4">
-  <a 
-    href="/profile"
-    className="block w-full bg-indigo-600 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition text-center"
-  >
-    Start Building Your Profile
-  </a>
-  
-  <p className="text-center text-sm text-gray-500">
-    Already have an account? <a href="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">Login</a>
-  </p>
-  
-  <p className="text-sm text-gray-500 text-center">
-    Built by Jamie Vargas • Currently in Development
-  </p>
-</div>
