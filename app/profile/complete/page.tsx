@@ -70,10 +70,10 @@ export default function CompletePage() {
             <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full"></div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Loading...
+            Preparing your profile...
           </h1>
           <p className="text-gray-600">
-            Please wait a moment
+            Setting up your account details
           </p>
         </div>
       </div>
