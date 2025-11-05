@@ -63,7 +63,21 @@ function CompleteContent() {
 
 export default function CompletePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Loading...
+          </h1>
+          <p className="text-gray-600">
+            Please wait a moment
+          </p>
+        </div>
+      </div>
+    }>
       <CompleteContent />
     </Suspense>
   );
