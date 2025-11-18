@@ -207,7 +207,7 @@ export class ScreenoutService {
       tips.push('Employment status helps match you to relevant surveys');
     }
 
-    if (!profile.hobbies || profile.hobbies.length === 0) {
+    if (!profile.hobbies || (Array.isArray(profile.hobbies) && profile.hobbies.length === 0)) {
       tips.push('Add hobbies to unlock niche survey opportunities');
     }
 
